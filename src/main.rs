@@ -1,12 +1,14 @@
 use std::env;
 use std::fs::File;
 use std::io::prelude::*;
+
 mod config;
+use config::Config;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
     println!("All arguments: {:?}", &args[1..]);
-    let config = config::parse(&args);
+    let config = Config::new(&args);
     println!("Query is: {:?}", config.query);
     println!("Filename is: {:?}", config.filename);
 

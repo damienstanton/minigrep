@@ -25,18 +25,3 @@ pub fn parse(args: &[String]) -> Config {
     let filename = args[2].clone();
     Config { query, filename }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn parser() {
-        let mut args: Vec<String> = Vec::new();
-        args.push(String::from("bin"));
-        args.push(String::from("a"));
-        args.push(String::from("b"));
-        let parsed_args = parse(&args);
-        println!("{:?}", parsed_args);
-    }
-}

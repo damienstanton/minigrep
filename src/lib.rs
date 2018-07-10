@@ -1,3 +1,4 @@
+use std::env;
 use std::error::Error;
 use std::fs::File;
 use std::io::prelude::*;
@@ -7,6 +8,7 @@ use std::io::prelude::*;
 pub struct Config {
     pub query: String,
     pub filename: String,
+    pub case_sensitive: bool,
 }
 
 impl Config {
@@ -29,9 +31,15 @@ impl Config {
         if args.len() < 3 {
             return Err("Not enough arguments. Need at least a query to search for, and a file to search in.");
         }
+
         let query = args[1].clone();
         let filename = args[2].clone();
-        Ok(Config { query, filename })
+        let case_sensitive = env::var("CASE_INSENSITIVE").is_err();
+        Ok(Config {
+            query,
+            filename,
+            case_sensitive,
+        })
     }
 }
 
@@ -40,14 +48,18 @@ pub fn exec(config: Config) -> Result<(), Box<Error>> {
     let mut f = File::open(config.filename)?;
     let mut contents = String::new();
     f.read_to_string(&mut contents)?;
-    let (results, line_num) = search(config.query, contents);
+    let (results, line_num) = if config.case_sensitive {
+        search(config.query, contents)
+    } else {
+        search_case_insensitive(config.query, contents)
+    };
     for line in results {
         println!("Line {}: '{}'", line_num.to_string(), line);
     }
     Ok(())
 }
 
-/// executes a query to locate the desired line in the data
+// executes a query to locate the desired line in the data
 fn search(query: String, contents: String) -> (Vec<String>, usize) {
     let mut results = Vec::new();
     let mut line_num: usize = 0;
@@ -55,6 +67,22 @@ fn search(query: String, contents: String) -> (Vec<String>, usize) {
     for line in contents.as_str().lines() {
         i += 1;
         if line.contains(&query) {
+            results.push(line.to_string());
+            line_num = i;
+        }
+    }
+    (results, line_num)
+}
+
+// executes a query to locate the desired line in the data
+fn search_case_insensitive(query: String, contents: String) -> (Vec<String>, usize) {
+    let query_lower = query.to_lowercase();
+    let mut results = Vec::new();
+    let mut line_num: usize = 0;
+    let mut i = 0;
+    for line in contents.as_str().lines() {
+        i += 1;
+        if line.contains(&query_lower) {
             results.push(line.to_string());
             line_num = i;
         }
@@ -75,5 +103,17 @@ a red house
 over yonder"#.to_string();
         let (result, _) = search(query, contents);
         assert_eq!(vec!["a red house"], result);
+    }
+
+    #[test]
+    fn test_search_case_insensitive() {
+        env::set_var("CASE_INSENSITIVE", "1");
+        let query = "OVER".to_string();
+        let contents = r#"
+There is
+a red house
+over yonder"#.to_string();
+        let (result, _) = search_case_insensitive(query, contents);
+        assert_eq!(vec!["over yonder"], result);
     }
 }

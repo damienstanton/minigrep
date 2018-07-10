@@ -1,22 +1,20 @@
+extern crate minigrep;
+use minigrep::Config;
 use std::env;
-use std::fs::File;
-use std::io::prelude::*;
-
-mod config;
-use config::Config;
+use std::process;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
     println!("All arguments: {:?}", &args[1..]);
-    let config = Config::new(&args);
+    let config = Config::new(&args).unwrap_or_else(|err| {
+        println!("Unable to parse arguments: {}", err);
+        process::exit(1);
+    });
+
     println!("Query is: {:?}", config.query);
     println!("Filename is: {:?}", config.filename);
-
-    let mut f = File::open(config.filename).expect("unable to open file");
-    let mut contents = String::new();
-
-    f.read_to_string(&mut contents)
-        .expect("unable to read content from file");
-
-    println!("Contents of file: \n{}", contents)
+    if let Err(err) = minigrep::run(config) {
+        println!("Error: {}", err);
+        process::exit(1);
+    }
 }

@@ -12,10 +12,13 @@ pub struct Config {
 impl Config {
     /// reads in a vector of strings and returns a tuple of its elements
     /// # Example
+    /// In this case, let's presume that the input args are coming from `env::args().collect()`.
+    ///
+    /// The constructor will take any reference to a `Vec<String>`.
     /// ```
     /// use minigrep::Config;
     ///
-    /// let mut args: Vec<String> = vec!["minigrep".to_string(), "q".to_string(), "file.txt".to_string()];
+    /// # let mut args: Vec<String> = vec!["minigrep".to_string(), "q".to_string(), "file.txt".to_string()];
     /// let parsed_args = &Config::new(&args).unwrap();
     /// assert_eq!(parsed_args.query, "q");
     /// assert_eq!(parsed_args.filename, "file.txt");
@@ -32,12 +35,45 @@ impl Config {
     }
 }
 
-/// opens the given configuration and reads the data
-pub fn run(config: Config) -> Result<(), Box<Error>> {
-    let mut f = File::open(config.filename).expect("unable to open file");
+/// runs the given config and returns the results of the query
+pub fn exec(config: Config) -> Result<(), Box<Error>> {
+    let mut f = File::open(config.filename)?;
     let mut contents = String::new();
     f.read_to_string(&mut contents)?;
-
-    println!("Contents of file: \n{}", contents);
+    let (results, line_num) = search(config.query, contents);
+    for line in results {
+        println!("Line {}: '{}'", line_num.to_string(), line);
+    }
     Ok(())
+}
+
+/// executes a query to locate the desired line in the data
+fn search(query: String, contents: String) -> (Vec<String>, usize) {
+    let mut results = Vec::new();
+    let mut line_num: usize = 0;
+    let mut i = 0;
+    for line in contents.as_str().lines() {
+        i += 1;
+        if line.contains(&query) {
+            results.push(line.to_string());
+            line_num = i;
+        }
+    }
+    (results, line_num)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_search() {
+        let query = "red".to_string();
+        let contents = r#"
+There is
+a red house
+over yonder"#.to_string();
+        let (result, _) = search(query, contents);
+        assert_eq!(vec!["a red house"], result);
+    }
 }

@@ -1,3 +1,5 @@
+//! This is the example application from chapter 12 of TRPL, a naive implementation of `grep` with no flags that simply displays search results (and line found) over a given text file.
+
 use std::env;
 use std::error::Error;
 use std::fs::File;
